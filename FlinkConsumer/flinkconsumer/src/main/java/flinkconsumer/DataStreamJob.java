@@ -18,14 +18,26 @@
 
 package flinkconsumer;
 
-import org.apache.flink.connector.kafka.source.KafkaSource;
-import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import Dto.Transaction;
 import Deserializer.JSONDeserializationSchema;
+
+import org.apache.flink.connector.kafka.source.KafkaSource;
 import org.apache.flink.connector.kafka.source.enumerator.initializer.OffsetsInitializer;
+import org.apache.flink.connector.elasticsearch.sink.Elasticsearch7SinkBuilder;
+import org.apache.flink.connector.jdbc.JdbcConnectionOptions;
+import org.apache.flink.connector.jdbc.JdbcExecutionOptions;
+import org.apache.flink.connector.jdbc.JdbcStatementBuilder;
+import org.apache.flink.api.connector.sink.Sink;
+import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.datastream.DataStream;;
+import org.apache.flink.api.common.eventtime.WatermarkStrategy;
+import org.apache.flink.elasticsearch7.shaded.org.apache.http.HttpHost;
+import org.apache.flink.elasticsearch7.shaded.org.elasticsearch.action.index.IndexRequest;
+import org.apache.flink.elasticsearch7.shaded.org.elasticsearch.client.Requests;
+import org.apache.flink.elasticsearch7.shaded.org.elasticsearch.common.xcontent.XContentType;
+import org.apache.flink.connector.jdbc.JdbcSink;
 
-
+import static utils.JsonUtil.convertTransactionToJson;
 
 /**
  * Skeleton for a Flink DataStream Job.
@@ -52,14 +64,30 @@ public class DataStreamJob {
 			.setBootstrapServers("localhost:9092")
 			.setTopics(topic)
 			.setGroupId("flink-group")
-			.setStarting0ffsets(OffsetsInitializer.earliest())
+			.setStartingOffsets(OffsetsInitializer.earliest())
 			.setValueOnlyDeserializer(new JSONDeserializationSchema())
 			.build();
 
-			DataStream<Transaction> transactionStream = env.fromSource(source, WatermarkStrategy.noWatermarks(), "Kafka source");
+		DataStream<Transaction> transactionStream = env.fromSource(source, WatermarkStrategy.noWatermarks(), "Kafka source");
 
-			transactionStream.print();
+		transactionStream.print();
+
+		transactionStream.sinkTo(
+            new Elasticsearch7SinkBuilder<Transaction>()
+                .setHosts(new HttpHost("localhost", 9200, "http"))
+                .setEmitter((transaction, runtimeContext, requestIndexer) -> {
+
+                    String json = convertTransactionToJson(transaction);
+
+                    IndexRequest indexRequest = Requests.indexRequest()
+                        .index("transactions")
+                        .id(transaction.getT())
+                        .source(json, XContentType.JSON);
+                    requestIndexer.add(indexRequest);
+                })
+                .build()
+        ).name("Elasticsearch Sink");
 		
-		env.execute("Flink Java API Skeleton");
+		env.execute("Flink Streaming");
 	}
 }

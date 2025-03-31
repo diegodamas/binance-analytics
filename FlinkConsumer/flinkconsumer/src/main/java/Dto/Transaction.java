@@ -13,7 +13,7 @@ public class Transaction {
     private String e; /*Event type*/
     private Timestamp E; /*Event time*/
     private String s; /*Symbol*/
-    private Integer t; /*Trade ID*/
+    private String t; /*Trade ID*/
     private double p; /*Price*/
     private double q; /*Quantity*/
     private Timestamp T; /*Trade time*/
