@@ -107,6 +107,7 @@ def run():
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
 
+    # https://developers.binance.com/docs/binance-spot-api-docs/web-socket-streams
     client = BinanceWebSocket("wss://stream.binance.com:9443/ws")
     loop.create_task(client.connect())
     loop.create_task(client.subscribe("btcusdt@trade"))
