@@ -171,6 +171,7 @@ poetry.toml
 pyrightconfig.json
 
 ### VisualStudioCode ###
+.vscode
 .vscode/*
 !.vscode/settings.json
 !.vscode/tasks.json
@@ -188,3 +189,6 @@ pyrightconfig.json
 # Ignore all local history of files
 .history
 .ionide
+
+.DS_Store/*
+.DS_Store
